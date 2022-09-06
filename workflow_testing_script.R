@@ -79,12 +79,11 @@ current_data_subset <- current_data[names(current_data)[!col_subset]]
 updated_data  <- left_join(current_data_subset,matched_data,by = c("Repository Name" = "nnlm_name")) 
 
 names(updated_data)[9] <- "Re3data Repository Name"
-updated_data
+updated_data$`re3data identifier` <- updated_data$repo_id
   
 # overwite data to google sheets
   
-
-googlesheets4::write_sheet(data = matched_data,sheet = "Data Collection- Re3data", ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99lyFJSHWTJ6wRp71IxLbAPDtf9d-F4sVaX4/edit#gid=294483193" ) 
+googlesheets4::write_sheet(data = updated_data,sheet = "Data Collection- Re3data", ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99lyFJSHWTJ6wRp71IxLbAPDtf9d-F4sVaX4/edit#gid=294483193" ) 
  
 
 
