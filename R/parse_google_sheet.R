@@ -13,7 +13,7 @@ get_google_sheet<- function(ss = "https://docs.google.com/spreadsheets/d/1FWuhJK
 }
 
 
-get_repo_ids <- function(ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99lyFJSHWTJ6wRp71IxLbAPDtf9d-F4sVaX4/edit#gid=294483193", 
+get_repo_urls <- function(ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99lyFJSHWTJ6wRp71IxLbAPDtf9d-F4sVaX4/edit#gid=294483193", 
                          sheet = "Data Collection",...){
  
   repo_sheet <- get_google_sheet(ss, sheet,...)
@@ -41,10 +41,23 @@ get_repo_ids <- function(ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99
     })  
   
   return(repo_df)
-  
+
 }
 
-
+get_repo_ids <- function(ss = "https://docs.google.com/spreadsheets/d/1FWuhJKQ99lyFJSHWTJ6wRp71IxLbAPDtf9d-F4sVaX4/edit#gid=294483193", 
+                          sheet = "Data Collection",...){
+  
+  #browser()
+  
+  repo_sheet <- get_google_sheet(ss, sheet,...)
+  
+  repo_id <- repo_sheet$`re3data identifier`
+  repo_name <- repo_sheet$`Repository Name`
+  
+  df <-data.frame("repo_name" = repo_name, "repo_id" = repo_id)
+  
+  return(df)
+}
 
 
  

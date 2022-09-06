@@ -8,33 +8,48 @@ extract_repository_info <- function(repository_metadata_XML,attributes) {
     xml_element <- sprintf("//r3d:%s",attributes[i])
     attr_list[[i]] <- list(xml_text(xml_find_all(repository_metadata_XML, xml_element)))
   }
-
+  
   names(attr_list) <- attributes
   ## consider reducing to character strings here
   df_attr <- purrr::map_dfr(attr_list,
-             function(x){
-              attr_value  <- ""
-               #browser()
-               if(!is_empty(x[[1]])){
-                 attr_value <- purrr::reduce(flatten(x),paste, sep = "; ")
-               }
-              return(attr_value)
-               })
+                            function(x){
+                              attr_value  <- ""
+                              #browser()
+                              if(!is_empty(x[[1]])){
+                                attr_value <- purrr::reduce(flatten(x),paste, sep = "; ")
+                              }
+                              return(attr_value)
+                            })
   
   return(df_attr)
 }
 
 # test hyperlinks
-re3data_ingest <- function(repo_df,attributes){
 
+#' Query re3data for listed repos
+#'
+#' @param repo_df Data frame. Contains list of desired repos
+#' @param req_fields Vector of strings of length 2. What fields will be used in purrr::map2
+#' @param attributes Vector of strings. What attributes will be extracted from re3data.
+#' @param repo_id_type String. either "repositoryUrl" or "re3data"
+#' 
+#' @return
+#' @export
+#'
+#' @examples
+re3data_ingest <- function(repo_df,
+                           req_fields = c("repo_id", "repo_name"),
+                           attributes,
+                           repo_id_type = "re3data"){
+  
   # check that required fields are in the df
-  if(!all(c("url","repo_name") %in% names(repo_df))){
-    stop("repo_df must contain the fields: url and repo_name")
+  if(!all(req_fields %in% names(repo_df))){
+    stop(glue::glue("repo_df must contain the fields: {req_fields[1]} and {req_fields[2]}"))
   }
   
-  purrr::map2_dfr(repo_df$url,repo_df$repo_name, function(x,y){
+  output_df <- purrr::map2_dfr(repo_df[,req_fields[1]],repo_df[,req_fields[2]], function(x,y){
     
-    #browser()
+    print(x)
     ## create empty dataframe
     
     empty_matrix <- matrix(
@@ -45,44 +60,60 @@ re3data_ingest <- function(repo_df,attributes){
     
     repository_info <- as_tibble(
       empty_matrix
-     )
+    )
     
     
     if(is.na(x)){
       repository_info[1,] <- NA
       repository_info$nnlm_name <- y
-      repository_info$nnlm_url <- x
+      repository_info$repo_id <- x
       return(repository_info)
     }
     
-    ## create a query
-    re3data_query <- list("query" = x)
+    ## check id type
+    if(repo_id_type == "repositoryUrl"){
+      
+      ## create a query
+      re3data_query <- list("query" = x)
+      
+      ## get query results
+      re3data_request <- GET("https://www.re3data.org/api/beta/repositories?", query = re3data_query) 
+      
+      URLs <- xml_text(xml_find_all(read_xml(re3data_request), xpath = "//@href"))
+      
+      
+      ## pull info from repo
+      
+      for (url in URLs) {
+        #browser()
+        repository_metadata_request <- GET(url)
+        repository_metadata_XML <-read_xml(repository_metadata_request) 
+        results_tibble <- extract_repository_info(repository_metadata_XML,attributes)
+        
+        repository_info <- rbind(repository_info, results_tibble)
+      }
+    }
     
-    ## get query results
-    re3data_request <- GET("https://www.re3data.org/api/beta/repositories?", query = re3data_query) 
-    
-    URLs <- xml_text(xml_find_all(read_xml(re3data_request), xpath = "//@href"))
-    
-    
-    ## pull info from repo
-    
-    for (url in URLs) {
-      #browser()
-      repository_metadata_request <- GET(url)
-      repository_metadata_XML <-read_xml(repository_metadata_request) 
+    if(repo_id_type == "re3data"){
+      ## repo id request
+      get_request <- sprintf("https://www.re3data.org/api/beta/repository/%s",x)
+      ## get query results
+      re3data_request <- GET(get_request) 
+      repository_metadata_XML <-read_xml(re3data_request) 
       results_tibble <- extract_repository_info(repository_metadata_XML,attributes)
       
       repository_info <- rbind(repository_info, results_tibble)
+      
     }
     
     if(nrow(repository_info) == 0){
       repository_info[1,] <- NA
     }
     repository_info$nnlm_name <- y
-    repository_info$nnlm_url <- x
+    repository_info$repo_id <- x
     
     return(repository_info)
-    
   })
-
+  
+  return(output_df)
 }
