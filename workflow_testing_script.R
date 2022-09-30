@@ -20,7 +20,7 @@ sum(is.na(repo_df$repo_id))
 raw_re3data <- re3data_ingest(repo_df,attributes = meta_data_re3data$`re3data Property ID`)
 
 
-# total records = 72
+# total records = 83
 repo_df %>% nrow()
 
 ## unmatched - 24 -  as expected

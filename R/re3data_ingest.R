@@ -2,6 +2,7 @@
 
 ## this seems like a good candidate for a class based approach
 extract_repository_info <- function(repository_metadata_XML,attributes) {
+ # browser()
   attr_list <- list()
   
   for(i in 1:length(attributes)){
